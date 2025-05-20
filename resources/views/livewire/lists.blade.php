@@ -2,6 +2,7 @@
 
 use Livewire\Volt\Component;
 use App\Models\ListTask;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\WithPagination;
 
@@ -9,11 +10,17 @@ new class extends Component {
     use WithPagination;
 
     public string $nameL = '';
-    public array $MyLists = [];
-    public int $idList;
+    public string $search = '';
+    public int $idList = 0;
+
 
     public function with():array{ 
-        return ['mylists'  => auth()->user()->listTasks()->paginate(5)];
+            return [
+            'mylists' => auth()->user()->listTasks()->paginate(5, ['*'], 'page_mylists'),
+            'sharedUserLists' => $this->idList
+                ? ListTask::find($this->idList)?->users()->paginate(5, ['*'], 'page_shared_users')
+                : null,
+        ];
     }
 
 
@@ -31,35 +38,44 @@ new class extends Component {
         $this->deleteFields();
         session()->flash('success', 'A new list was created!');
         //send a message to frontend about new list
+        $this->dispatch('close-modal', modalName: 'edit_list');
     }
 
 
-    public function editList($id){
-        $list = ListTask::findOrfail($id);
+    public function editList($idList):void{
+        $list = ListTask::findOrfail($idList);
         $this->nameL = $list->name;
         $this->idList = $list->id;
     }
 
-    public function saveEditList(){
+    public function saveEditList():void{
         $this->validate(['nameL' => 'required|min:5|max:15|unique:list_tasks,name|string']);
         ListTask::find($this->idList)->update(['name' => $this->nameL]);
         session()->flash('success', 'The data of the list was updated successfully!');
         $this->deleteFields();
-
+        $this->dispatch('close-modal', modalName: 'edit_list'); 
     }
 
-    public function deleteFields(){
+    public function deleteFields():void{
         $this->nameL = '';
     }
 
-    public function deleteList($id){
-       $this->idList = $id;
+    public function getIDList($idList):void{
+       $this->idList = $idList;
     }
 
-    public function confirmDeleteList(){
+    public function confirmDeleteList():void{
        ListTask::findOrfail($this->idList)->delete();
        session()->flash('success', 'The task was deleted successfully!');
        $this->deleteFields();
+       $this->dispatch('close-modal', modalName: 'delete_list');
+    }
+
+    public function deleteSharedUser($id){
+        $user = User::find($id);
+        $user->listTasks()->detach($this->idList);
+        session()->flash('success_shared_lists', 'The user was removed successfully!');
+        
     }
 
 }; ?>
@@ -95,7 +111,7 @@ new class extends Component {
     <div class="mt-10 flex flex-wrap gap-4 w-full flex-col items-center">
         @foreach($mylists as $mylist)
             <flux:modal.trigger name="edit_list">
-                <button wire:click = "editList({{ $mylist->id }})" wire:click = "deleteList({{ $mylist->id }})" class="bg-blue-500 text-white font-semibold px-4 py-2 rounded-2xl shadow-md transition duration-200 ease-in-out cursor-pointer w-full">
+                <button wire:click = "editList({{ $mylist->id }})" wire:click = "getIDList({{ $mylist->id }})"  class="bg-blue-500 text-white font-semibold px-4 py-2 rounded-2xl shadow-md transition duration-200 ease-in-out cursor-pointer w-full">
                     {{ $mylist->name }}
                 </button>
             </flux:modal.trigger>
@@ -154,6 +170,56 @@ new class extends Component {
             <div>
                 <flux:heading size="lg">Details of the list</flux:heading>
                 <flux:text class="mt-2">Check the activities</flux:text>
+
+                    @if(session('success_shared_lists'))
+                        <div class  = "mt-5 px-5 py-5 rounded w-full text-white bg-blue-500">
+                            {{session('success_shared_lists')}}
+                        </div>
+                    @endif
+                <flux:text class="mt-2">Collaborators</flux:text>
+                
+               @if($sharedUserLists)
+                   <div class="overflow-x-auto mt-6 rounded-xl shadow-md">
+                    <table class="min-w-full divide-y divide-gray-200 bg-white">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Name
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Email
+                                </th>
+
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+
+
+
+                            @foreach ($sharedUserLists as $user)
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-black">
+                                        {{ $user->name }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-black">
+                                        {{ $user->email }}
+                                    </td>
+
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                         <Button type="submit" variant="primary" class = "cursor-pointer text-black rounded px-2 py-2 bg-red-500" wire:click="deleteSharedUser({{$user->id}})">Remove</Button>
+                                    </td>
+                                </tr>
+                            @endforeach   
+                        </tbody>
+                    </table>
+                     @if($sharedUserLists)
+                             {{$sharedUserLists->links()}}
+                            @endif
+                </div>
+               @endif
 
             </div>
 

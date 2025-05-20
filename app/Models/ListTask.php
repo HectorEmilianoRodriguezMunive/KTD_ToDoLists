@@ -22,7 +22,7 @@ class ListTask extends Model
     }
 
     public function users(): BelongsToMany{
-        return $this->belongsToMany(ListTask::class);
+        return $this->belongsToMany(User::class);
     }
 
 }
