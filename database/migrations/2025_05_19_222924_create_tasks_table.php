@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('list_task_id')->constrained('list_tasks');
+            $table->foreignId('list_task_id')->constrained('list_tasks')->onDelete('cascade');;
             $table->string('name')->nullable(false);
             $table->string('priority')->nullable(false);
             $table->timestamps();
