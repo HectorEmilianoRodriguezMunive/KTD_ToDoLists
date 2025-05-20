@@ -62,7 +62,7 @@ class User extends Authenticatable
             ->implode('');
     }
 
-    public function listTasks(){
+    public function listTasks(): BelongsToMany{
         return $this->belongsToMany(ListTask::class);
     }
 

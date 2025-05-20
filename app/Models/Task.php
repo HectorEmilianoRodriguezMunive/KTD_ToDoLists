@@ -8,6 +8,10 @@ use App\Models\ListTask;
 class Task extends Model
 {
     use HasFactory;
+    protected $fillable = [
+        'name',
+        'priority'
+    ];
 
     public function list(){
         return $this->belongsTo(ListTask::class);
