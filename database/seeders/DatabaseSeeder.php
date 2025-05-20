@@ -17,12 +17,19 @@ class DatabaseSeeder extends Seeder
        $users = User::factory(10)->create();
 
        $lists = ListTask::factory(5)->create();
-       Task::factory(5)->create();
+       $tasks = Task::factory(5)->create();
 
         /*User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);*/
+
+        foreach ($tasks as $task) {
+            $randomList = $lists->random(); 
+            $task->list_task_id = $randomList->id;
+            $task->save();
+        }
+
 
        foreach ($users as $user) {
         $user->listTasks()->attach(

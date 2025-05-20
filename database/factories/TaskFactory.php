@@ -18,7 +18,7 @@ class TaskFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'priority' => 0,
+            'priority' => 'important',
             'list_task_id' => 1
         ];
     }
